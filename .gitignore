@@ -1,0 +1,5 @@
+.sfdx/
+.sf/
+.claude/
+node_modules/
+*.lock
