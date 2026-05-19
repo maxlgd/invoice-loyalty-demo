@@ -1,0 +1,413 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Flow xmlns="http://soap.sforce.com/2006/04/metadata">
+    <apiVersion>63.0</apiVersion>
+    <description>Screen flow for customers to upload an invoice PDF and claim loyalty points via DocumentAI extraction.</description>
+    <interviewLabel>Invoice Loyalty Submission {!$Flow.CurrentDateTime}</interviewLabel>
+    <label>Invoice Loyalty Submission</label>
+
+    <!-- actionCalls -->
+    <actionCalls>
+        <name>Action_ExtractInvoice</name>
+        <label>Extract Invoice with DocumentAI</label>
+        <locationX>176</locationX>
+        <locationY>450</locationY>
+        <actionName>DocumentAIService</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>Decision_ExtractionOk</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Assignment_FaultExtract</targetReference>
+        </faultConnector>
+        <inputParameters>
+            <name>contentDocumentId</name>
+            <value><elementReference>varContentDocumentId</elementReference></value>
+        </inputParameters>
+        <outputParameters>
+            <assignToReference>varRawJson</assignToReference>
+            <name>rawJson</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>varExtractionSuccess</assignToReference>
+            <name>success</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>varErrorMessage</assignToReference>
+            <name>errorMessage</name>
+        </outputParameters>
+        <storeOutputAutomatically>false</storeOutputAutomatically>
+    </actionCalls>
+    <actionCalls>
+        <name>Action_ProcessInvoice</name>
+        <label>Process Invoice and Award Points</label>
+        <locationX>176</locationX>
+        <locationY>670</locationY>
+        <actionName>InvoiceLoyaltyProcessor</actionName>
+        <actionType>apex</actionType>
+        <connector>
+            <targetReference>Decision_IsDuplicate</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Assignment_FaultProcess</targetReference>
+        </faultConnector>
+        <inputParameters>
+            <name>rawJson</name>
+            <value><elementReference>varRawJson</elementReference></value>
+        </inputParameters>
+        <inputParameters>
+            <name>contentDocumentId</name>
+            <value><elementReference>varContentDocumentId</elementReference></value>
+        </inputParameters>
+        <outputParameters>
+            <assignToReference>varSubmissionId</assignToReference>
+            <name>submissionId</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>varTotalPoints</assignToReference>
+            <name>totalPoints</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>varSuccess</assignToReference>
+            <name>success</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>varIsDuplicate</assignToReference>
+            <name>isDuplicate</name>
+        </outputParameters>
+        <outputParameters>
+            <assignToReference>varErrorMessage</assignToReference>
+            <name>errorMessage</name>
+        </outputParameters>
+        <storeOutputAutomatically>false</storeOutputAutomatically>
+    </actionCalls>
+
+    <!-- assignments -->
+    <assignments>
+        <name>Assignment_CaptureDocId</name>
+        <label>Capture Document ID from query</label>
+        <locationX>176</locationX>
+        <locationY>340</locationY>
+        <assignmentItems>
+            <assignToReference>varContentDocumentId</assignToReference>
+            <operator>Assign</operator>
+            <value><elementReference>varLatestContentVersion.ContentDocumentId</elementReference></value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Action_ExtractInvoice</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assignment_FaultExtract</name>
+        <label>Capture Extraction Fault</label>
+        <locationX>440</locationX>
+        <locationY>450</locationY>
+        <assignmentItems>
+            <assignToReference>varErrorMessage</assignToReference>
+            <operator>Assign</operator>
+            <value><elementReference>$Flow.FaultMessage</elementReference></value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Screen_Error</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assignment_FaultProcess</name>
+        <label>Capture Processing Fault</label>
+        <locationX>440</locationX>
+        <locationY>670</locationY>
+        <assignmentItems>
+            <assignToReference>varErrorMessage</assignToReference>
+            <operator>Assign</operator>
+            <value><elementReference>$Flow.FaultMessage</elementReference></value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Screen_Error</targetReference>
+        </connector>
+    </assignments>
+    <assignments>
+        <name>Assignment_FaultLookup</name>
+        <label>Capture Lookup Fault</label>
+        <locationX>440</locationX>
+        <locationY>230</locationY>
+        <assignmentItems>
+            <assignToReference>varErrorMessage</assignToReference>
+            <operator>Assign</operator>
+            <value><elementReference>$Flow.FaultMessage</elementReference></value>
+        </assignmentItems>
+        <connector>
+            <targetReference>Screen_Error</targetReference>
+        </connector>
+    </assignments>
+
+    <!-- decisions -->
+    <decisions>
+        <name>Decision_IsDuplicate</name>
+        <label>Is this a duplicate invoice?</label>
+        <locationX>176</locationX>
+        <locationY>780</locationY>
+        <defaultConnector>
+            <targetReference>Decision_Success</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Not a duplicate</defaultConnectorLabel>
+        <rules>
+            <name>Outcome_IsDuplicate</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varIsDuplicate</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue><booleanValue>true</booleanValue></rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Screen_Duplicate</targetReference>
+            </connector>
+            <label>Duplicate</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Decision_ExtractionOk</name>
+        <label>Did DocumentAI succeed?</label>
+        <locationX>176</locationX>
+        <locationY>560</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Error</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>Failed</defaultConnectorLabel>
+        <rules>
+            <name>Outcome_ExtractionOk</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varExtractionSuccess</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue><booleanValue>true</booleanValue></rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Action_ProcessInvoice</targetReference>
+            </connector>
+            <label>Success</label>
+        </rules>
+    </decisions>
+    <decisions>
+        <name>Decision_Success</name>
+        <label>Was processing successful?</label>
+        <locationX>176</locationX>
+        <locationY>890</locationY>
+        <defaultConnector>
+            <targetReference>Screen_Error</targetReference>
+        </defaultConnector>
+        <defaultConnectorLabel>No / Error</defaultConnectorLabel>
+        <rules>
+            <name>Outcome_Success</name>
+            <conditionLogic>and</conditionLogic>
+            <conditions>
+                <leftValueReference>varSuccess</leftValueReference>
+                <operator>EqualTo</operator>
+                <rightValue><booleanValue>true</booleanValue></rightValue>
+            </conditions>
+            <connector>
+                <targetReference>Screen_Confirmation</targetReference>
+            </connector>
+            <label>Success</label>
+        </rules>
+    </decisions>
+
+    <!-- recordLookups -->
+    <recordLookups>
+        <name>Get_LatestContentVersion</name>
+        <label>Get Latest Uploaded File</label>
+        <locationX>176</locationX>
+        <locationY>230</locationY>
+        <assignNullValuesIfNoRecordsFound>false</assignNullValuesIfNoRecordsFound>
+        <connector>
+            <targetReference>Assignment_CaptureDocId</targetReference>
+        </connector>
+        <faultConnector>
+            <targetReference>Assignment_FaultLookup</targetReference>
+        </faultConnector>
+        <filterLogic>and</filterLogic>
+        <filters>
+            <field>CreatedById</field>
+            <operator>EqualTo</operator>
+            <value><elementReference>$User.Id</elementReference></value>
+        </filters>
+        <getFirstRecordOnly>true</getFirstRecordOnly>
+        <object>ContentVersion</object>
+        <outputReference>varLatestContentVersion</outputReference>
+        <queriedFields>Id</queriedFields>
+        <queriedFields>ContentDocumentId</queriedFields>
+        <sortField>CreatedDate</sortField>
+        <sortOrder>Desc</sortOrder>
+        <storeOutputAutomatically>false</storeOutputAutomatically>
+    </recordLookups>
+
+    <processMetadataValues>
+        <name>BuilderType</name>
+        <value><stringValue>LightningFlowBuilder</stringValue></value>
+    </processMetadataValues>
+    <processType>Flow</processType>
+    <runInMode>SystemModeWithoutSharing</runInMode>
+
+    <!-- screens -->
+    <screens>
+        <name>Screen_Upload</name>
+        <label>Upload Your Invoice</label>
+        <locationX>176</locationX>
+        <locationY>120</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <connector>
+            <targetReference>Get_LatestContentVersion</targetReference>
+        </connector>
+        <fields>
+            <name>Customer_Logo</name>
+            <fieldText>&lt;p&gt;&lt;img src="/resource/customer_logo" alt="Customer Logo" style="max-height:80px; display:block; margin-bottom:16px;" /&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>Header_Upload</name>
+            <fieldText>&lt;h2&gt;Upload your invoice to claim loyalty points&lt;/h2&gt;&lt;p&gt;Please upload a clear PDF of your invoice. We will automatically extract the items and calculate your eligible points.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <fields>
+            <name>FileUpload</name>
+            <extensionName>forceContent:fileUpload</extensionName>
+            <fieldType>ComponentInstance</fieldType>
+            <inputParameters>
+                <name>label</name>
+                <value><stringValue>Invoice PDF</stringValue></value>
+            </inputParameters>
+            <storeOutputAutomatically>false</storeOutputAutomatically>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Screen_Duplicate</name>
+        <label>Invoice Already Submitted</label>
+        <locationX>440</locationX>
+        <locationY>780</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Duplicate_Message</name>
+            <fieldText>&lt;h2 style="color:#e67e00;"&gt;This invoice has already been submitted&lt;/h2&gt;&lt;p&gt;Our system detected that this invoice was already processed. If you believe this is an error, please contact our support team.&lt;/p&gt;&lt;p&gt;&lt;em&gt;{!varErrorMessage}&lt;/em&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Screen_Confirmation</name>
+        <label>Points Awarded!</label>
+        <locationX>176</locationX>
+        <locationY>1000</locationY>
+        <allowBack>false</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Confirmation_Message</name>
+            <fieldText>&lt;h2 style="color:green;"&gt;Invoice processed successfully!&lt;/h2&gt;&lt;p&gt;You have been awarded &lt;strong&gt;{!varTotalPoints} loyalty points&lt;/strong&gt; for this submission.&lt;/p&gt;&lt;p&gt;Our team will review your submission if any items require manual validation.&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+    <screens>
+        <name>Screen_Error</name>
+        <label>Something went wrong</label>
+        <locationX>440</locationX>
+        <locationY>1000</locationY>
+        <allowBack>true</allowBack>
+        <allowFinish>true</allowFinish>
+        <allowPause>false</allowPause>
+        <fields>
+            <name>Error_Message</name>
+            <fieldText>&lt;h2 style="color:red;"&gt;We could not process your invoice&lt;/h2&gt;&lt;p&gt;Please try again or contact support if the issue persists.&lt;/p&gt;&lt;p&gt;&lt;em&gt;{!varErrorMessage}&lt;/em&gt;&lt;/p&gt;</fieldText>
+            <fieldType>DisplayText</fieldType>
+        </fields>
+        <showFooter>true</showFooter>
+        <showHeader>true</showHeader>
+    </screens>
+
+    <start>
+        <locationX>176</locationX>
+        <locationY>48</locationY>
+        <connector>
+            <targetReference>Screen_Upload</targetReference>
+        </connector>
+    </start>
+    <status>Active</status>
+
+    <!-- variables -->
+    <variables>
+        <name>varContentDocumentId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varLatestContentVersion</name>
+        <dataType>SObject</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <objectType>ContentVersion</objectType>
+    </variables>
+    <variables>
+        <name>varRawJson</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varSubmissionId</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varTotalPoints</name>
+        <dataType>Number</dataType>
+        <scale>0</scale>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value><numberValue>0</numberValue></value>
+    </variables>
+    <variables>
+        <name>varSuccess</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value><booleanValue>false</booleanValue></value>
+    </variables>
+    <variables>
+        <name>varExtractionSuccess</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value><booleanValue>false</booleanValue></value>
+    </variables>
+    <variables>
+        <name>varErrorMessage</name>
+        <dataType>String</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+    </variables>
+    <variables>
+        <name>varIsDuplicate</name>
+        <dataType>Boolean</dataType>
+        <isCollection>false</isCollection>
+        <isInput>false</isInput>
+        <isOutput>false</isOutput>
+        <value><booleanValue>false</booleanValue></value>
+    </variables>
+
+</Flow>

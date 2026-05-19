@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<CustomField xmlns="http://soap.sforce.com/2006/04/metadata">
+    <fullName>Eligible_Asset__c</fullName>
+    <label>Eligible Asset</label>
+    <referenceTo>Eligible_Asset__c</referenceTo>
+    <relationshipLabel>Invoice Line Items</relationshipLabel>
+    <relationshipName>Invoice_Line_Items</relationshipName>
+    <required>false</required>
+    <type>Lookup</type>
+</CustomField>

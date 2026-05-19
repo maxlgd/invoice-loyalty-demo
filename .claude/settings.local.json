@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(sf data *)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); [print\\(r.get\\('RelationshipName'\\), r.get\\('ChildObject'\\)\\) for r in d['result']['records']]\")",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -c \" import json, sys d = json.load\\(sys.stdin\\) print\\('Line items in DB:', d['result']['totalSize']\\) for r in d['result']['records']: print\\(' -', r.get\\('Reference__c'\\), '|', r.get\\('Product_Description__c',''\\)[:50], '| eligible:', r.get\\('Is_Eligible__c'\\), '| pts:', r.get\\('Points_Awarded__c'\\), '| confidence:', r.get\\('Match_Confidence__c'\\)\\) \")",
+      "Bash(python3 -c \" import json, sys d = json.load\\(sys.stdin\\) print\\('Recent Apex logs:', d['result']['totalSize']\\) for r in d['result']['records']: print\\(' -', r.get\\('LastModifiedDate'\\), r.get\\('Operation'\\), r.get\\('Status'\\), 'size:', r.get\\('LogLength'\\)\\) \")",
+      "Bash(python3 -c \" import json, sys d = json.load\\(sys.stdin\\) print\\('Flow interviews:', d['result']['totalSize']\\) for r in d['result']['records']: print\\(' Status:', r.get\\('Status'\\), '| Error:', r.get\\('ErrorMessage'\\), '| Label:', r.get\\('InterviewLabel'\\)\\) \")",
+      "Bash(python3 *)",
+      "Bash(sf project *)"
+    ]
+  }
+}

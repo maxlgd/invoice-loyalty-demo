@@ -1,0 +1,11 @@
+{
+  "packageDirectories": [
+    {
+      "path": "force-app",
+      "default": true
+    }
+  ],
+  "name": "invoice-loyalty-demo",
+  "namespace": "",
+  "sourceApiVersion": "63.0"
+}
