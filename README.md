@@ -1,12 +1,12 @@
 # Invoice Loyalty Demo — Salesforce + Data Cloud
 
-A demo showing how a customer uploads an invoice through a portal, has it extracted by Data Cloud DocumentAI, gets each line item automatically matched against an internal product catalog, and earns loyalty points.
+A demo showing how a user uploads an invoice through a Screen Flow, has it extracted by Data Cloud DocumentAI, gets each line item automatically matched against an internal product catalog, and earns loyalty points.
 
 ---
 
 ## What this demo shows
 
-1. Customer uploads a PDF invoice through a self-service Experience Cloud page
+1. User uploads a PDF invoice through the Screen Flow
 2. Data Cloud DocumentAI extracts structured line items, dates, and totals
 3. Each line item is matched against the internal product catalog (`Product2`) by SKU exact match
 4. Matched items earn points immediately (1 point per dollar of purchase price)
@@ -17,8 +17,7 @@ A demo showing how a customer uploads an invoice through a portal, has it extrac
 ## Architecture overview
 
 ```
-Experience Cloud Page
-  └─ Screen Flow: Invoice_Loyalty_Submission
+Screen Flow: Invoice_Loyalty_Submission
        │
        ├─ Screen 1: File Upload
        │
@@ -50,7 +49,7 @@ One record per invoice upload.
 | Field | Type | Description |
 |---|---|---|
 | `Name` | Auto-number | Unique reference (INV-0001 etc.) |
-| `Contact__c` | Lookup(Contact) | Customer who submitted — auto-populated from Experience Cloud running user |
+| `Contact__c` | Lookup(Contact) | User who submitted — auto-populated from the running user |
 | `Status__c` | Picklist | `Pending` → `Approved` / `Under Review` |
 | `Invoice_Number__c` | Text(80) | Invoice number extracted by DocumentAI |
 | `Invoice_Date__c` | Date | Invoice date extracted by DocumentAI |
@@ -135,14 +134,11 @@ Once created, open `DocumentAIService.cls` and update line 39 with your config's
 'idpConfigurationIdOrName' => '<your-docai-config-api-name>'
 ```
 
-### 5. Add the Flow to Experience Cloud
-1. Experience Builder → your portal page
-2. Drag a **Flow** component
-3. Select `Invoice Loyalty Submission`
-4. Publish
+### 5. Run the Flow
+The flow can be run directly from **Setup → Flows → Invoice Loyalty Submission → Run**, or added to any Lightning App page or record page via the **Flow** component in Lightning App Builder.
 
 ### 6. Field-level security
-The Admin profile has full access. For Experience Cloud users, grant at minimum:
+The Admin profile has full access. For other profiles, grant at minimum:
 - Read/Write on `Invoice_Submission__c` and `Invoice_Line_Item__c`
 - Apex class access: `DocumentAIService`, `InvoiceLoyaltyProcessor`
 - Flow access: `Invoice_Loyalty_Submission`
